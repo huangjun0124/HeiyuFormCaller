@@ -24,10 +24,18 @@ namespace HeiYuADB
     /// </summary>
     public partial class MainWindow : Window
     {
+        List<string> Commands;
         public MainWindow()
         {
             InitializeComponent();
             txtAdbDir.Text = AppDomain.CurrentDomain.BaseDirectory + @"platform-tools";
+            Commands = XMLConfigurer.Instance.GetCommands();
+            Commands.Insert(0, "");
+            cmbCommands.ItemsSource = Commands;
+            if(Commands.Count() > 1)
+            {
+                cmbCommands.SelectedIndex = 1;
+            }
         }
 
         private void btnSelDir_Click(object sender, RoutedEventArgs e)
@@ -117,9 +125,15 @@ namespace HeiYuADB
             try
             {
                 if (!CheckAdbValid()) return;
+                string command = txtInputCommand.Text.Trim();
+                if (string.IsNullOrEmpty(command))
+                {
+                    System.Windows.MessageBox.Show("请选择或输入命令！");
+                    return;
+                }
                 this.Cursor = System.Windows.Input.Cursors.Wait;
                 DisableButtons();
-                string cmd = " .\\adb -d shell sh /sdcard/Android/data/me.piebridge.brevent/brevent.sh";
+                string cmd = " adb " + command;
                 txtOutput.AppendText("执行命令:\r\n" + cmd + "\r\n");
                 txtOutput.ScrollToEnd();
                 BackgroundWorker worker = new BackgroundWorker();
@@ -172,6 +186,7 @@ namespace HeiYuADB
             btnTestDevice.IsEnabled = false;
             btnStartHY.IsEnabled = false;
             btnExit.IsEnabled = false;
+            btnAddCommand.IsEnabled = false;
         }
 
         private void EnableButtons()
@@ -180,11 +195,33 @@ namespace HeiYuADB
             btnTestDevice.IsEnabled = true;
             btnStartHY.IsEnabled = true;
             btnExit.IsEnabled = true;
+            btnAddCommand.IsEnabled = true;
         }
 
         private void btnExit_Click(object sender, RoutedEventArgs e)
         {
             Application.Current.Shutdown();
+        }
+
+        private void cmbCommands_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            string command = cmbCommands.SelectedValue as string;
+            txtInputCommand.Text = command;
+        }
+
+        private void btnSaveCommand_Click(object sender, RoutedEventArgs e)
+        {
+            string command = txtInputCommand.Text.Trim();
+            if(string.IsNullOrEmpty(command))
+            {
+                System.Windows.MessageBox.Show("请输入命令！");
+                return;
+            }
+            if (Commands.Contains(command)) return;
+            Commands.Add(command);
+            cmbCommands.Items.Refresh();
+            cmbCommands.SelectedIndex = Commands.Count() - 1;
+            XMLConfigurer.Instance.SaveCommands(Commands);
         }
     }
 }
